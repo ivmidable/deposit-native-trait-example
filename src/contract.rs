@@ -32,6 +32,7 @@ pub fn execute(
     let contract = DepositNativeContract::<Empty, Empty, Empty>::default();
     match msg {
         ExecuteMsg::Deposit { } => contract.execute_deposit(deps, info),
+        ExecuteMsg::Withdraw { amount, denom } => contract.execute_withdraw(deps, info, amount, denom),
     }
 }
 

@@ -2,7 +2,7 @@ use schemars::JsonSchema;
 use std::marker::PhantomData;
 
 use cosmwasm_std::{
-    Deps, DepsMut, Empty, MessageInfo, Order, Response, StdResult,
+    Deps, DepsMut, Empty, MessageInfo, Order, Response, StdResult, BankMsg, coin, Uint128
 };
 use cw_storage_plus::Map;
 
@@ -27,11 +27,10 @@ where
     type Err: ToString;
     fn execute_deposit(&self, deps: DepsMut, info: MessageInfo)
         -> Result<Response<C>, Self::Err>;
+    fn execute_withdraw(&self, deps: DepsMut, info: MessageInfo, amount:u128, denom:String) -> Result<Response<C>, Self::Err>;
 }
 
 pub trait DepositNativeQuery {
-    // TODO: use custom error?
-    // How to handle the two derived error types?
     fn query_deposits(&self, deps: Deps, address: String) -> StdResult<DepositResponse>;
 }
 
@@ -39,19 +38,11 @@ pub struct DepositNativeContract<'a, C, Q, E>
 where
     C: CustomMsg,
 {
+    //keys address and denom
     pub deposits: Map<'a, (&'a str, &'a str), Deposits>,
     pub(crate) _custom_response: PhantomData<C>,
     pub(crate) _custom_query: PhantomData<Q>,
     pub(crate) _custom_execute: PhantomData<E>,
-}
-
-// This is a signal, the implementations are in other files
-impl<'a, C, E, Q> DepositNative<C> for DepositNativeContract<'a, C, E, Q>
-where
-    C: CustomMsg,
-    E: CustomMsg,
-    Q: CustomMsg,
-{
 }
 
 impl<C, E, Q> Default for DepositNativeContract<'static, C, E, Q>
@@ -84,6 +75,8 @@ where
         }
     }
 }
+
+///////////////////
 
 impl<'a, C, E, Q> DepositNativeExecute<C> for DepositNativeContract<'a, C, E, Q>
 where
@@ -130,6 +123,33 @@ where
             .add_attribute("execute", "deposit")
             .add_attribute("denom", d_coins.denom)
             .add_attribute("amount", d_coins.amount))
+    }
+
+    fn execute_withdraw(
+        &self,
+        deps: DepsMut,
+        info: MessageInfo,
+        amount:u128,
+        denom:String
+    ) -> Result<Response<C>, ContractError> {
+        let sender = info.sender.clone().into_string();
+        
+        let mut deposit = self.deposits.load(deps.storage, (&sender, denom.as_str())).unwrap();
+        deposit.coins.amount = deposit.coins.amount.checked_sub(Uint128::from(amount)).unwrap();
+        deposit.count = deposit.count.checked_sub(1).unwrap();
+        self.deposits.save(deps.storage, (&sender, denom.as_str()), &deposit).unwrap();
+    
+        let msg = BankMsg::Send {
+            to_address: sender.clone(),
+            amount: vec![coin(amount, denom.clone())],
+        };
+    
+        Ok(Response::new()
+            .add_attribute("execute", "withdraw")
+            .add_attribute("denom", denom)
+            .add_attribute("amount", amount.to_string())
+            .add_message(msg)
+        )
     }
 }
 
