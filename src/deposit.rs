@@ -34,22 +34,18 @@ pub trait DepositNativeQuery {
     fn query_deposits(&self, deps: Deps, address: String) -> StdResult<DepositResponse>;
 }
 
-pub struct DepositNativeContract<'a, C, Q, E>
+pub struct DepositNativeContract<'a, C>
 where
-    C: CustomMsg,
+    C: CustomMsg
 {
     //keys address and denom
     pub deposits: Map<'a, (&'a str, &'a str), Deposits>,
     pub(crate) _custom_response: PhantomData<C>,
-    pub(crate) _custom_query: PhantomData<Q>,
-    pub(crate) _custom_execute: PhantomData<E>,
 }
 
-impl<C, E, Q> Default for DepositNativeContract<'static, C, E, Q>
+impl<C> Default for DepositNativeContract<'static, C>
 where
-    C: CustomMsg,
-    E: CustomMsg,
-    Q: CustomMsg,
+    C: CustomMsg
 {
     fn default() -> Self {
         Self::new(
@@ -58,11 +54,9 @@ where
     }
 }
 
-impl<'a, C, E, Q> DepositNativeContract<'a, C, E, Q>
+impl<'a, C> DepositNativeContract<'a, C>
 where
-    C: CustomMsg,
-    E: CustomMsg,
-    Q: CustomMsg,
+    C: CustomMsg
 {
     fn new(
         deposits_key: &'a str,
@@ -70,19 +64,15 @@ where
         Self {
             deposits: Map::new(deposits_key),
             _custom_response: PhantomData,
-            _custom_execute: PhantomData,
-            _custom_query: PhantomData,
         }
     }
 }
 
 ///////////////////
 
-impl<'a, C, E, Q> DepositNativeExecute<C> for DepositNativeContract<'a, C, E, Q>
+impl<'a, C> DepositNativeExecute<C> for DepositNativeContract<'a, C>
 where
-    C: CustomMsg,
-    E: CustomMsg,
-    Q: CustomMsg,
+    C: CustomMsg
 {
     type Err = ContractError;
     fn execute_deposit(
@@ -153,11 +143,9 @@ where
     }
 }
 
-impl<'a, C, E, Q> DepositNativeQuery for DepositNativeContract<'a, C, E, Q>
+impl<'a, C> DepositNativeQuery for DepositNativeContract<'a, C>
 where
-    C: CustomMsg,
-    E: CustomMsg,
-    Q: CustomMsg,
+    C: CustomMsg
 {
     fn query_deposits(&self, deps: Deps, address: String) -> StdResult<DepositResponse> {
         let res: StdResult<Vec<_>> = self

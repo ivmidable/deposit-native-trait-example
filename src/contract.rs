@@ -29,7 +29,7 @@ pub fn execute(
     info: MessageInfo,
     msg: ExecuteMsg,
 ) -> Result<Response, ContractError> {
-    let contract = DepositNativeContract::<Empty, Empty, Empty>::default();
+    let contract = DepositNativeContract::<Empty>::default();
     match msg {
         ExecuteMsg::Deposit { } => contract.execute_deposit(deps, info),
         ExecuteMsg::Withdraw { amount, denom } => contract.execute_withdraw(deps, info, amount, denom),
@@ -38,7 +38,7 @@ pub fn execute(
 
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
-    let contract = DepositNativeContract::<Empty, Empty, Empty>::default();
+    let contract = DepositNativeContract::<Empty>::default();
     match msg {
         QueryMsg::Deposits { address } => to_binary(&contract.query_deposits(deps, address)?),
     }
@@ -64,7 +64,7 @@ mod tests {
     }
 
     fn deposit_coins(deps: DepsMut) {
-        let contract = DepositNativeContract::<Empty, Empty, Empty>::default();
+        let contract = DepositNativeContract::<Empty>::default();
         let coins = vec![coin(AMOUNT, DENOM.to_string())];
         let info = mock_info(SENDER, &coins);
         let res = contract.execute_deposit(deps, info).unwrap();
